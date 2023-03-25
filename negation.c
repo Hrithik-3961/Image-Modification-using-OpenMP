@@ -57,7 +57,7 @@ void read_png_file(char *filename, char *outputFilename)
 
   png_read_update_info(png, info);
 
-  // if (row_pointers) abort();
+  if (row_pointers) abort();
 
   row_pointers = (png_bytep *)malloc(sizeof(png_bytep) * height);
   for (int y = 0; y < height; y++)
@@ -75,7 +75,7 @@ void read_png_file(char *filename, char *outputFilename)
   // performing operations
 #pragma omp parallel private(y, x)
   {
-#pragma omp for schedule(static)
+    #pragma omp for schedule(static)
     for (y = 0; y < height; y++)
     {
       png_bytep row = row_pointers[y];
@@ -143,6 +143,9 @@ void read_png_file(char *filename, char *outputFilename)
 int main()
 {
   double startTime = omp_get_wtime();
+  #pragma omp parallel
+  {
+#pragma omp for schedule(static)
   for (int i = 1; i <= 3; i++)
   {
     char str[25] = "cat (";
@@ -174,7 +177,8 @@ int main()
     char *p = str;
     read_png_file(p, s);
   }
+  }
   double endTime = omp_get_wtime();
-  printf("Time taken is %lf", endTime - startTime);
+  printf("Time taken is %lf\n", endTime - startTime);
   return 0;
 }

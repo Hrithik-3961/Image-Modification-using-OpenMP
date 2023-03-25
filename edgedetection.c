@@ -42,8 +42,7 @@ void edgeDetection(char *filename, char *outputFileName)
 
   color_type = png_get_color_type(png, info);
   bit_depth = png_get_bit_depth(png, info);
-  // Read any color_type into 8bit depth, RGBA format.
-  // See http://www.libpng.org/pub/png/libpng-manual.txt
+  
   dimensions = height;
   if (bit_depth == 16)
     png_set_strip_16(png);
@@ -99,9 +98,10 @@ void edgeDetection(char *filename, char *outputFileName)
   }
   // maskR function begins
   int val = 0, maskDimensions = 3;
+
+  #pragma omp parallel for shared(row_pointers, maskedImageR, maskedImageG, maskedImageB) private(averageR, averageG, averageB) collapse(2) num_threads(height)
   for (int i = 0; i < height; i++)
   {
-
     for (int j = 0; j < width; j++)
     {
       averageR = 0;
@@ -156,9 +156,9 @@ void edgeDetection(char *filename, char *outputFileName)
   maskMatrix[2][1] = 0;
   maskMatrix[2][2] = 1;
 
+#pragma omp parallel for shared(row_pointers, maskedImageR, maskedImageG, maskedImageB) private(averageR, averageG, averageB) collapse(2) num_threads(height)
   for (int i = 0; i < height; i++)
   {
-
     for (int j = 0; j < width; j++)
     {
       averageR = 0;
@@ -185,18 +185,21 @@ void edgeDetection(char *filename, char *outputFileName)
         averageR = 0;
       else if (averageR > 255)
         averageR = 255;
+    #pragma omp atomic
       maskedImageR[i * width + j] += averageR / 9;
 
       if (averageG < 0)
         averageG = 0;
       else if (averageG > 255)
         averageG = 255;
+    #pragma omp atomic
       maskedImageG[i * width + j] += averageG / 9;
 
       if (averageB < 0)
         averageB = 0;
       else if (averageB > 255)
         averageB = 255;
+        #pragma omp atomic
       maskedImageB[i * width + j] += averageB / 9;
     }
   }
@@ -212,9 +215,9 @@ void edgeDetection(char *filename, char *outputFileName)
   maskMatrix[2][1] = -1;
   maskMatrix[2][2] = -1;
 
+#pragma omp parallel for shared(row_pointers, maskedImageR, maskedImageG, maskedImageB) private(averageR, averageG, averageB) collapse(2) num_threads(height)
   for (int i = 0; i < height; i++)
   {
-
     for (int j = 0; j < width; j++)
     {
       averageR = 0;
@@ -241,18 +244,21 @@ void edgeDetection(char *filename, char *outputFileName)
         averageR = 0;
       else if (averageR > 255)
         averageR = 255;
+    #pragma omp atomic
       maskedImageR[i * width + j] += averageR / 9;
 
       if (averageG < 0)
         averageG = 0;
       else if (averageG > 255)
         averageG = 255;
+    #pragma omp atomic
       maskedImageG[i * width + j] += averageG / 9;
 
       if (averageB < 0)
         averageB = 0;
       else if (averageB > 255)
         averageB = 255;
+        #pragma omp atomic
       maskedImageB[i * width + j] += averageB / 9;
     }
   }
@@ -309,7 +315,9 @@ void edgeDetection(char *filename, char *outputFileName)
 int main()
 {
   double startTime = omp_get_wtime();
-#pragma omp parallel for
+#pragma omp parallel
+  {
+#pragma omp for schedule(static)
   for (int i = 1; i <= 3; i++)
   {
     char str[25] = "cat (";
@@ -341,6 +349,7 @@ int main()
     char *p = str;
     printf("%s", p);
     edgeDetection(p, s);
+  }
   }
   double endTime = omp_get_wtime();
   printf("\nThe time required is %lf\n", endTime - startTime);

@@ -92,6 +92,8 @@ void read_png_file(char *filename, char *outputFileName)
   int *maskedImageG = (int *)malloc(size * sizeof(int));
   int *maskedImageB = (int *)malloc(size * sizeof(int));
   int val = 0;
+
+  #pragma omp parallel for shared(row_pointers, maskedImageR, maskedImageG, maskedImageB) private(averageR, averageG, averageB) num_threads(height)
   for (int i = 0; i < height; i++)
   {
     for (int j = 0; j < width; j++)
@@ -234,6 +236,6 @@ int main()
   }
 
   double endTime = omp_get_wtime();
-  printf("Time taken is %lf", endTime - startTime);
+  printf("Time taken is %lf\n", endTime - startTime);
   return 0;
 }
